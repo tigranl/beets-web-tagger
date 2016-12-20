@@ -51,7 +51,7 @@ class Server(threading.Thread):
 class MBWeb(BeetsPlugin):
     def __init__(self):
         super(MBWeb, self).__init__()
-        self.port = config['web_tagger']['port'].as_number() or 8000
+        self.port = config['web_tagger']['port'].as_number()
         self.register_listener('before_choose_candidate', self.prompt)
         self.register_listener('pluginload', self.run)
         self.running = None
