@@ -42,7 +42,6 @@ class Server(threading.Thread):
         self.run_server.listen(1)
         while True:
             connection, addr = self.run_server.accept()
-            # threading.Thread(target=self.receiver, args=(connection, addr)).start()
             data = connection.recv(size)
             if not data:
                 break
