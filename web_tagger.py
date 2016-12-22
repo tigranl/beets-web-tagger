@@ -25,9 +25,11 @@ from beets.ui.commands import PromptChoice
 from beets import ui
 from beets import config
 
+PORT = config['web_tagger']['port'].as_number() or 8000
+
 
 class Server(threading.Thread):
-    def __init__(self, port=8000):
+    def __init__(self, port=PORT):
         threading.Thread.__init__(self)
         self.host = '127.0.0.1'
         self.port = port
@@ -52,7 +54,7 @@ class Server(threading.Thread):
 class MBWeb(BeetsPlugin):
     def __init__(self):
         super(MBWeb, self).__init__()
-        self.port = config['web_tagger']['port'].as_number() or 8000
+        self.port = PORT
         self.register_listener('before_choose_candidate', self.prompt)
         self.register_listener('pluginload', self.run)
         self.running = None
