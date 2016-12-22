@@ -42,6 +42,7 @@ class Server(threading.Thread):
         self.run_server.listen(1)
         while True:
             connection, addr = self.run_server.accept()
+            # threading.Thread(target=self.receiver, args=(connection, addr)).start()
             data = connection.recv(size)
             if not data:
                 break
@@ -51,7 +52,7 @@ class Server(threading.Thread):
 class MBWeb(BeetsPlugin):
     def __init__(self):
         super(MBWeb, self).__init__()
-        self.port = config['web_tagger']['port'].as_number()
+        self.port = config['web_tagger']['port'].as_number() or 8000
         self.register_listener('before_choose_candidate', self.prompt)
         self.register_listener('pluginload', self.run)
         self.running = None
@@ -62,9 +63,9 @@ class MBWeb(BeetsPlugin):
         self.running = server
 
     def prompt(self, session, task):
-        return [PromptChoice('T', 'Tag Lookup', self.choice)]
+        return [PromptChoice('l', 'Lookup', self.choice)]
 
-    def choice(self):
+    def choice(self, session, task):
         artist = ui.input_('Artist')
         realise = ui.input_('Album')
         track = ui.input_('Track')
@@ -81,4 +82,3 @@ class MBWeb(BeetsPlugin):
             url = 'http://musicbrainz.org/taglookup?{0}'.format(urlencode(query))
             ui.print_("Choose your tracks and click 'tagger' button to add:")
             webbrowser.open(url)
-        return artist, realise
