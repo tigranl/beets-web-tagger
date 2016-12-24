@@ -16,10 +16,14 @@
 
 from __future__ import division, absolute_import, print_function
 
-import socket
-import threading
+try:
+    from SocketServer import BaseRequestHandler, ThreadingMixIn, TCPServer
+except ImportError:  # python 3
+    from socketserver import BaseRequestHandler, ThreadingMixIn, TCPServer
+from threading import Thread
 import webbrowser
 from urllib.parse import urlencode
+from urllib import unquote_plus
 from beets.plugins import BeetsPlugin
 from beets.ui.commands import PromptChoice
 from beets import ui
@@ -28,27 +32,25 @@ from beets import config
 PORT = config['web_tagger']['port'].as_number() or 8000
 
 
-class Server(threading.Thread):
-    def __init__(self, port=PORT):
-        threading.Thread.__init__(self)
-        self.host = '127.0.0.1'
-        self.port = port
-        try:  # Start TCP socket, catch soket.error
-            self.run_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.run_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.run_server.bind((self.host, self.port))
-        except socket.error as error_msg:
-            print("Error occurred: {0}".format(error_msg))
+class Server(BaseRequestHandler):
+    def handle(self):
+        data = self.request.recv(1024)
+        return data
 
-    def listen(self, size=1024):
-        self.run_server.listen(1)
-        while True:
-            connection, addr = self.run_server.accept()
-            # threading.Thread(target=self.receiver, args=(connection, addr)).start()
-            data = connection.recv(size)
-            if not data:
+    def parse(self, data):
+        data = data.splitlines()
+        s = data[0].decode()
+        url = ''
+        for char in s[5:]:
+            if char != ' ':
+                url += char
+            else:
                 break
-            yield data
+        return url
+
+
+class ThreadedServer(ThreadingMixIn, TCPServer):
+    pass
 
 
 class MBWeb(BeetsPlugin):
@@ -57,12 +59,10 @@ class MBWeb(BeetsPlugin):
         self.port = PORT
         self.register_listener('before_choose_candidate', self.prompt)
         self.register_listener('pluginload', self.run)
-        self.running = None
 
     def run(self):
-        server = Server()
-        server.start()
-        self.running = server
+        thread = ThreadedServer(('', PORT), Server)
+        thread.serve_forever()
 
     def prompt(self, session, task):
         return [PromptChoice('l', 'Lookup', self.choice)]
